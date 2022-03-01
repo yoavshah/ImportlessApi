@@ -26,8 +26,11 @@
 <img align="center" src="https://raw.githubusercontent.com/yoavshah/ImportlessApi/master/images/IDA_Example_2.png" />
 
 
+  ## Examples
+  * There probally should not be hash collisions, but in case 2 functions resolve into the same hash, try changing the hash function.
+
   ## Credits
-  Real thanks for JustasMasiulis for helping me understand and learn about advanced macro techniques with his [project](https://github.com/JustasMasiulis/lazy_importer/)
+  * Real thanks for JustasMasiulis for helping me understand and learn about advanced macro techniques with his [project](https://github.com/JustasMasiulis/lazy_importer/)
 
 
 
