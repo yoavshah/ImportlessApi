@@ -10,13 +10,20 @@
 
   ## Examples
 
-  * Example in CPP.
+  * Example of CPP syntax
+<img align="center" src="https://raw.githubusercontent.com/yoavshah/ImportlessApi/master/images/CPP_Syntax.png" />
+
+  * Example of CPP full example
 <img align="center" src="https://raw.githubusercontent.com/yoavshah/ImportlessApi/master/images/CPP_Example.png" />
 
+  * Example's output
+<img align="center" src="https://raw.githubusercontent.com/yoavshah/ImportlessApi/master/images/OUTPUT_Example.png" />
 
-  * Example in IDA.
-<img align="center" src="https://raw.githubusercontent.com/yoavshah/ImportlessApi/master/images/IDA_Example.png" />
+  * IDA output (main function)
+<img align="center" src="https://raw.githubusercontent.com/yoavshah/ImportlessApi/master/images/IDA_Example_1.png" />
 
+  * IDA output (resolve function)
+<img align="center" src="https://raw.githubusercontent.com/yoavshah/ImportlessApi/master/images/IDA_Example_2.png" />
 
 
   ## Credits

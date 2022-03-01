@@ -10,11 +10,13 @@
 #define FORCE_CONSTEXPR(expr) [&]() \
     { constexpr auto x = (expr); return x; }()
 
+#define IMPORTLESS_API_START_NUMBER 0x1928471f
+
 // Hash base value, every compilation changes based on __TIME__ and __DATE__.
-#define IMPORTLESS_API_HASH_BASE_CONST FORCE_CONSTEXPR(::importless_api::hash_str(__TIME__ __DATE__ , 0x56))
+#define IMPORTLESS_API_HASH_BASE_CONST FORCE_CONSTEXPR(::importless_api::hash_str(__TIME__ __DATE__ , IMPORTLESS_API_START_NUMBER))
 
 // Calculate the function name hash.
-#define IMPORTLESS_API_HASH_CONST(func_name) FORCE_CONSTEXPR(::importless_api::hash_str(REAL_DEFINITION(func_name), ::importless_api::hash_str(__TIME__ __DATE__ , 0x56)))
+#define IMPORTLESS_API_HASH_CONST(func_name) FORCE_CONSTEXPR(::importless_api::hash_str(REAL_DEFINITION(func_name), ::importless_api::hash_str(__TIME__ __DATE__ , IMPORTLESS_API_START_NUMBER)))
 
 /*
     Example usage:
@@ -219,10 +221,13 @@ namespace importless_api {
     }
 
 
-    /* Hash string with start value. */
-    constexpr unsigned int hash_str(const char* func_name, const unsigned int value)
+    /* 
+        Hash string with start value. 
+        Choosed the hash function based on "The Last Stage of Delerium. Win32 Assembly Components"
+    */
+    constexpr UINT32 hash_str(const char* func_name, const UINT32 value)
     {
-        unsigned int hash = value;
+        UINT32 hash = value;
         for (;;)
         {
             char c = *func_name;
@@ -230,16 +235,16 @@ namespace importless_api {
             if (!c)
                 return hash;
 
-            hash = (hash + ((c) << 5));
+            hash = (((hash << 5) | (hash >> 27)) + c) & 0xFFFFFFFF;
         }
     }
 
 
     /* Iterates over the PEB and all exported functions to find function by hash. */
-    void* get_function_from_hash(unsigned int hash)
+    void* get_function_from_hash(UINT32 hash)
     {
         win::LDR_DATA_TABLE_ENTRY_T* curr_module = (win::LDR_DATA_TABLE_ENTRY_T*)peb()->Ldr->InMemoryOrderLinks.Flink;
-
+        
         /* Iterate over loaded modules. */
         while (curr_module->BaseDllName.Buffer != NULL) {
             char* hBase = curr_module->DllBase;
@@ -260,7 +265,8 @@ namespace importless_api {
                 /* Iterate over functions and check their hash. */
                 for (size_t i = 0; i < hImageExportDirectory->NumberOfNames; ++i, ++pNamePointers, ++pOrdinalPointers)
                 {
-                    if (hash_str(hBase + *pNamePointers, IMPORTLESS_API_HASH_BASE_CONST) == hash)
+                    UINT32 func_hash = hash_str(hBase + *pNamePointers, IMPORTLESS_API_HASH_BASE_CONST);
+                    if (func_hash == hash)
                     {
                         DWORD dwFuncRVA = pAddressesPointers[*pOrdinalPointers];
 
