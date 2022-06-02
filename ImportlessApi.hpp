@@ -6,30 +6,15 @@
 /* Convert definition to function name. CreateFile to CreateFileA or CreateFileW based on configurations. */
 #define REAL_DEFINITION(x) #x
 
-// Forces the compiler to evaluate the expression.
-#define FORCE_CONSTEXPR(expr) [&]() \
-    { constexpr auto x = (expr); return x; }()
-
 #define IMPORTLESS_API_START_NUMBER 0x1928471f
 
-// Hash base value, every compilation changes based on __TIME__ and __DATE__.
-#define IMPORTLESS_API_HASH_BASE_CONST FORCE_CONSTEXPR(::importless_api::hash_str(__TIME__ __DATE__ , IMPORTLESS_API_START_NUMBER))
-
-// Calculate the function name hash.
-#define IMPORTLESS_API_HASH_CONST(func_name) FORCE_CONSTEXPR(::importless_api::hash_str(REAL_DEFINITION(func_name), ::importless_api::hash_str(__TIME__ __DATE__ , IMPORTLESS_API_START_NUMBER)))
-
-/*
-    Example usage:
-        Handle hFile = IMPORTLESS_API(CreateFile)(Parameters);
-*/
-#define IMPORTLESS_API(func_name) static_cast<decltype(&func_name)>(::importless_api::get_function_from_hash(IMPORTLESS_API_HASH_CONST(func_name)))
+#define DATE_AND_TIME __TIME__ __DATE__
+__pragma(message(DATE_AND_TIME))
 
 
-namespace importless_api {
-
-    /* Windows structs. */
+namespace importless_api
+{
     namespace win {
-
         struct LIST_ENTRY_T {
             LIST_ENTRY_T* Flink;
             LIST_ENTRY_T* Blink;
@@ -201,32 +186,13 @@ namespace importless_api {
         };
     }
 
-
-    /* Getting the PEB struct from register based on architecture. */
-    const win::PEB_T* peb() noexcept
-    {
-#if defined(_M_X64) || defined(__amd64__)
-        return reinterpret_cast<const win::PEB_T*>(__readgsqword(0x60));
-#elif defined(_M_IX86) || defined(__i386__)
-        return reinterpret_cast<const win::PEB_T*>(__readfsdword(0x30));
-#elif defined(_M_ARM) || defined(__arm__)
-        return *reinterpret_cast<const win::PEB_T**>(_MoveFromCoprocessor(15, 0, 13, 0, 2) + 0x30);
-#elif defined(_M_ARM64) || defined(__aarch64__)
-        return *reinterpret_cast<const win::PEB_T**>(__getReg(18) + 0x60);
-#elif defined(_M_IA64) || defined(__ia64__)
-        return *reinterpret_cast<const win::PEB_T**>(static_cast<char*>(_rdteb()) + 0x60);
-#else
-#error Unsupported platform. 
-#endif
-    }
-
-
-    /* 
-        Hash string with start value. 
+    /*
+        Hash string with start value.
         Choosed the hash function based on "The Last Stage of Delerium. Win32 Assembly Components"
     */
     constexpr UINT32 hash_str(const char* func_name, const UINT32 value)
     {
+
         UINT32 hash = value;
         for (;;)
         {
@@ -239,50 +205,97 @@ namespace importless_api {
         }
     }
 
-
-    /* Iterates over the PEB and all exported functions to find function by hash. */
-    void* get_function_from_hash(UINT32 hash)
+    template<UINT32 hash> class importless_api
     {
-        win::LDR_DATA_TABLE_ENTRY_T* curr_module = (win::LDR_DATA_TABLE_ENTRY_T*)peb()->Ldr->InMemoryOrderLinks.Flink;
-        
-        /* Iterate over loaded modules. */
-        while (curr_module->BaseDllName.Buffer != NULL) {
-            char* hBase = curr_module->DllBase;
 
-
-            win::IMAGE_DOS_HEADER_T* hImageDosHeader = (win::IMAGE_DOS_HEADER_T*)hBase;
-            win::IMAGE_NT_HEADERS_T* hImageNtHeaders = (win::IMAGE_NT_HEADERS_T*)(hBase + hImageDosHeader->e_lfanew);
-
-            /* If export table exists. */
-            if (hImageNtHeaders->OptionalHeader.DataDirectory[0].VirtualAddress != 0)
-            {
-                win::IMAGE_EXPORT_DIRECTORY_T* hImageExportDirectory = (win::IMAGE_EXPORT_DIRECTORY_T*)(hBase + hImageNtHeaders->OptionalHeader.DataDirectory[0].VirtualAddress);
-
-                PDWORD pNamePointers = (PDWORD)(hBase + hImageExportDirectory->AddressOfNames);
-                PWORD pOrdinalPointers = (PWORD)(hBase + hImageExportDirectory->AddressOfNameOrdinals);
-                PDWORD pAddressesPointers = (PDWORD)(hBase + hImageExportDirectory->AddressOfFunctions);
-
-                /* Iterate over functions and check their hash. */
-                for (size_t i = 0; i < hImageExportDirectory->NumberOfNames; ++i, ++pNamePointers, ++pOrdinalPointers)
-                {
-                    UINT32 func_hash = hash_str(hBase + *pNamePointers, IMPORTLESS_API_HASH_BASE_CONST);
-                    if (func_hash == hash)
-                    {
-                        DWORD dwFuncRVA = pAddressesPointers[*pOrdinalPointers];
-
-                        /* Return function address. */
-                        return hBase + dwFuncRVA;
-                    }
-                }
-            }
-
-            curr_module = (win::LDR_DATA_TABLE_ENTRY_T*)curr_module->InLoadOrderLinks.Flink;
+    private:
+        /* Getting the PEB struct from register based on architecture. */
+        const win::PEB_T* peb() noexcept
+        {
+#if defined(_M_X64) || defined(__amd64__)
+            return reinterpret_cast<const win::PEB_T*>(__readgsqword(0x60));
+#elif defined(_M_IX86) || defined(__i386__)
+            return reinterpret_cast<const win::PEB_T*>(__readfsdword(0x30));
+#elif defined(_M_ARM) || defined(__arm__)
+            return *reinterpret_cast<const win::PEB_T**>(_MoveFromCoprocessor(15, 0, 13, 0, 2) + 0x30);
+#elif defined(_M_ARM64) || defined(__aarch64__)
+            return *reinterpret_cast<const win::PEB_T**>(__getReg(18) + 0x60);
+#elif defined(_M_IA64) || defined(__ia64__)
+            return *reinterpret_cast<const win::PEB_T**>(static_cast<char*>(_rdteb()) + 0x60);
+#else
+#error Unsupported platform. 
+#endif
         }
 
-        return NULL;
-    }
-
-}
 
 
+
+    public:
+
+        importless_api()
+        {}
+
+        UINT32 get_hash()
+        {
+            return hash;
+        }
+
+        /* Iterates over the PEB and all exported functions to find function by hash. */
+        LPVOID get_function()
+        {
+            win::LDR_DATA_TABLE_ENTRY_T* curr_module = (win::LDR_DATA_TABLE_ENTRY_T*)peb()->Ldr->InMemoryOrderLinks.Flink;
+
+            /* Iterate over loaded modules. */
+            while (curr_module->BaseDllName.Buffer != NULL) {
+                char* hBase = curr_module->DllBase;
+
+
+                win::IMAGE_DOS_HEADER_T* hImageDosHeader = (win::IMAGE_DOS_HEADER_T*)hBase;
+                win::IMAGE_NT_HEADERS_T* hImageNtHeaders = (win::IMAGE_NT_HEADERS_T*)(hBase + hImageDosHeader->e_lfanew);
+
+                /* If export table exists. */
+                if (hImageNtHeaders->OptionalHeader.DataDirectory[0].VirtualAddress != 0)
+                {
+                    win::IMAGE_EXPORT_DIRECTORY_T* hImageExportDirectory = (win::IMAGE_EXPORT_DIRECTORY_T*)(hBase + hImageNtHeaders->OptionalHeader.DataDirectory[0].VirtualAddress);
+
+                    PDWORD pNamePointers = (PDWORD)(hBase + hImageExportDirectory->AddressOfNames);
+                    PWORD pOrdinalPointers = (PWORD)(hBase + hImageExportDirectory->AddressOfNameOrdinals);
+                    PDWORD pAddressesPointers = (PDWORD)(hBase + hImageExportDirectory->AddressOfFunctions);
+
+                    /* Iterate over functions and check their hash. */
+                    for (size_t i = 0; i < hImageExportDirectory->NumberOfNames; ++i, ++pNamePointers, ++pOrdinalPointers)
+                    {
+                        char* xx = hBase + *pNamePointers;
+                        if (strcmp("CreateFileW", xx) == 0)
+                        {
+                            xx = 0;
+                        }
+                        UINT32 func_hash = hash_str(hBase + *pNamePointers, importless_api<hash_str(DATE_AND_TIME, IMPORTLESS_API_START_NUMBER)>().get_hash());
+                        if (func_hash == hash)
+                        {
+                            DWORD dwFuncRVA = pAddressesPointers[*pOrdinalPointers];
+
+                            /* Return function address. */
+                            return hBase + dwFuncRVA;
+                        }
+                    }
+                }
+
+                curr_module = (win::LDR_DATA_TABLE_ENTRY_T*)curr_module->InLoadOrderLinks.Flink;
+            }
+
+            return NULL;
+        }
+
+
+    };
+};
+
+
+
+/*
+    Example usage:
+        Handle hFile = IMPORTLESS_API(CreateFile)(Parameters);
+*/
+#define IMPORTLESS_API(func_name) static_cast<decltype(&func_name)>(importless_api::importless_api<importless_api::hash_str(REAL_DEFINITION(func_name), importless_api::hash_str(DATE_AND_TIME, IMPORTLESS_API_START_NUMBER))>().get_function())
 
