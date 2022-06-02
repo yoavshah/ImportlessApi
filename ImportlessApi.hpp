@@ -265,11 +265,6 @@ namespace importless_api
                     /* Iterate over functions and check their hash. */
                     for (size_t i = 0; i < hImageExportDirectory->NumberOfNames; ++i, ++pNamePointers, ++pOrdinalPointers)
                     {
-                        char* xx = hBase + *pNamePointers;
-                        if (strcmp("CreateFileW", xx) == 0)
-                        {
-                            xx = 0;
-                        }
                         UINT32 func_hash = hash_str(hBase + *pNamePointers, importless_api<hash_str(DATE_AND_TIME, IMPORTLESS_API_START_NUMBER)>().get_hash());
                         if (func_hash == hash)
                         {
