@@ -9,7 +9,6 @@
 #define IMPORTLESS_API_START_NUMBER 0x1928471f
 
 #define DATE_AND_TIME __TIME__ __DATE__
-__pragma(message(DATE_AND_TIME))
 
 
 namespace importless_api
@@ -293,4 +292,7 @@ namespace importless_api
         Handle hFile = IMPORTLESS_API(CreateFile)(Parameters);
 */
 #define IMPORTLESS_API(func_name) static_cast<decltype(&func_name)>(importless_api::importless_api<importless_api::hash_str(REAL_DEFINITION(func_name), importless_api::hash_str(DATE_AND_TIME, IMPORTLESS_API_START_NUMBER))>().get_function())
+
+#define IMPORTLESS_API_STR(func_name, t) static_cast<t>(importless_api::importless_api<importless_api::hash_str(func_name, importless_api::hash_str(DATE_AND_TIME, IMPORTLESS_API_START_NUMBER))>().get_function())
+
 
