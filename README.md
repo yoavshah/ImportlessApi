@@ -1,7 +1,7 @@
 
 # ImportlessApi
 
-  ## ImportlessApi is a project that allow you to easly use real time function resolving using a changing hash value.
+  ## ImportlessApi is a project that allows you to easly use real time function resolving using a changing hash value.
 
   ## Usage
   
