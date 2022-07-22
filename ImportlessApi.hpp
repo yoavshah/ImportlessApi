@@ -1,3 +1,11 @@
+/*
+    Created by Yoav Shaharabani (github.com/yoavshah)
+    Use with your own risk and care.
+    DO NOT USE FOR MALICIOUS PURPOSES!
+
+    FOLLOW ME ON GITHUB AND BUY ME A COFFEE
+*/
+
 #include <Windows.h>
 #include <winreg.h>
 
