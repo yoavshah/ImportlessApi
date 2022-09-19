@@ -5,19 +5,36 @@
 
     FOLLOW ME ON GITHUB AND BUY ME A COFFEE
 */
+#pragma once
 
 #include <Windows.h>
 #include <winreg.h>
 
-#pragma once
+/*
+    Define IMPORTLESSAPI_CONSISTENT_COMPILATION so each compilation the hash value will stay constant (Do not use DATE_AND_TIME)
+
+    Define IMPORTLESSAPI_REMOVE_INLINE so all the search functions will be forced inline, not defining this works well when making a shellcode
+
+
+*/
+
 
 /* Convert definition to function name. CreateFile to CreateFileA or CreateFileW based on configurations. */
 #define REAL_DEFINITION(x) #x
 
 #define IMPORTLESS_API_START_NUMBER 0x1928471f
 
+#ifndef IMPORTLESSAPI_CONSISTENT_COMPILATION
 #define DATE_AND_TIME __TIME__ __DATE__
+#else
+#define DATE_AND_TIME "ImportlessApiConsistentCompilation"
+#endif
 
+#ifndef IMPORTLESSAPI_REMOVE_INLINE
+#define IMPORTLESSAPI_INLINED __forceinline
+#else
+#define IMPORTLESSAPI_INLINED
+#endif
 
 namespace importless_api
 {
@@ -239,16 +256,16 @@ namespace importless_api
 
     public:
 
-        importless_api()
+        IMPORTLESSAPI_INLINED importless_api()
         {}
 
-        UINT32 get_hash()
+        IMPORTLESSAPI_INLINED UINT32 get_hash()
         {
             return hash;
         }
 
         /* Iterates over the PEB and all exported functions to find function by hash. */
-        LPVOID get_function()
+        IMPORTLESSAPI_INLINED LPVOID get_function()
         {
             win::LDR_DATA_TABLE_ENTRY_T* curr_module = (win::LDR_DATA_TABLE_ENTRY_T*)peb()->Ldr->InMemoryOrderLinks.Flink;
 
