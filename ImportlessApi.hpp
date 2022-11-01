@@ -152,7 +152,7 @@ namespace importless_api
         {
             return hash;
         }
-
+        
         /* Iterates over the PEB and all exported functions to find function by hash. */
         IMPORTLESSAPI_INLINED LPVOID get_function()
         {
