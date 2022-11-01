@@ -96,135 +96,7 @@ namespace importless_api
             UNICODE_STRING_T BaseDllName;
         };
 
-        struct IMAGE_DOS_HEADER_T { // DOS .EXE header
-            unsigned short e_magic; // Magic number
-            unsigned short e_cblp; // Bytes on last page of file
-            unsigned short e_cp; // Pages in file
-            unsigned short e_crlc; // Relocations
-            unsigned short e_cparhdr; // Size of header in paragraphs
-            unsigned short e_minalloc; // Minimum extra paragraphs needed
-            unsigned short e_maxalloc; // Maximum extra paragraphs needed
-            unsigned short e_ss; // Initial (relative) SS value
-            unsigned short e_sp; // Initial SP value
-            unsigned short e_csum; // Checksum
-            unsigned short e_ip; // Initial IP value
-            unsigned short e_cs; // Initial (relative) CS value
-            unsigned short e_lfarlc; // File address of relocation table
-            unsigned short e_ovno; // Overlay number
-            unsigned short e_res[4]; // Reserved words
-            unsigned short e_oemid; // OEM identifier (for e_oeminfo)
-            unsigned short e_oeminfo; // OEM information; e_oemid specific
-            unsigned short e_res2[10]; // Reserved words
-            long           e_lfanew; // File address of new exe header
-        };
 
-        struct IMAGE_FILE_HEADER_T {
-            unsigned short Machine;
-            unsigned short NumberOfSections;
-            unsigned long  TimeDateStamp;
-            unsigned long  PointerToSymbolTable;
-            unsigned long  NumberOfSymbols;
-            unsigned short SizeOfOptionalHeader;
-            unsigned short Characteristics;
-        };
-
-        struct IMAGE_EXPORT_DIRECTORY_T {
-            unsigned long  Characteristics;
-            unsigned long  TimeDateStamp;
-            unsigned short MajorVersion;
-            unsigned short MinorVersion;
-            unsigned long  Name;
-            unsigned long  Base;
-            unsigned long  NumberOfFunctions;
-            unsigned long  NumberOfNames;
-            unsigned long  AddressOfFunctions; // RVA from base of image
-            unsigned long  AddressOfNames; // RVA from base of image
-            unsigned long  AddressOfNameOrdinals; // RVA from base of image
-        };
-
-        struct IMAGE_DATA_DIRECTORY_T {
-            unsigned long VirtualAddress;
-            unsigned long Size;
-        };
-
-        struct IMAGE_OPTIONAL_HEADER64_T {
-            unsigned short       Magic;
-            unsigned char        MajorLinkerVersion;
-            unsigned char        MinorLinkerVersion;
-            unsigned long        SizeOfCode;
-            unsigned long        SizeOfInitializedData;
-            unsigned long        SizeOfUninitializedData;
-            unsigned long        AddressOfEntryPoint;
-            unsigned long        BaseOfCode;
-            unsigned long long   ImageBase;
-            unsigned long        SectionAlignment;
-            unsigned long        FileAlignment;
-            unsigned short       MajorOperatingSystemVersion;
-            unsigned short       MinorOperatingSystemVersion;
-            unsigned short       MajorImageVersion;
-            unsigned short       MinorImageVersion;
-            unsigned short       MajorSubsystemVersion;
-            unsigned short       MinorSubsystemVersion;
-            unsigned long        Win32VersionValue;
-            unsigned long        SizeOfImage;
-            unsigned long        SizeOfHeaders;
-            unsigned long        CheckSum;
-            unsigned short       Subsystem;
-            unsigned short       DllCharacteristics;
-            unsigned long long   SizeOfStackReserve;
-            unsigned long long   SizeOfStackCommit;
-            unsigned long long   SizeOfHeapReserve;
-            unsigned long long   SizeOfHeapCommit;
-            unsigned long        LoaderFlags;
-            unsigned long        NumberOfRvaAndSizes;
-            IMAGE_DATA_DIRECTORY_T DataDirectory[16];
-        };
-
-        struct IMAGE_OPTIONAL_HEADER32_T {
-            unsigned short       Magic;
-            unsigned char        MajorLinkerVersion;
-            unsigned char        MinorLinkerVersion;
-            unsigned long        SizeOfCode;
-            unsigned long        SizeOfInitializedData;
-            unsigned long        SizeOfUninitializedData;
-            unsigned long        AddressOfEntryPoint;
-            unsigned long        BaseOfCode;
-            unsigned long        BaseOfData;
-            unsigned long        ImageBase;
-            unsigned long        SectionAlignment;
-            unsigned long        FileAlignment;
-            unsigned short       MajorOperatingSystemVersion;
-            unsigned short       MinorOperatingSystemVersion;
-            unsigned short       MajorImageVersion;
-            unsigned short       MinorImageVersion;
-            unsigned short       MajorSubsystemVersion;
-            unsigned short       MinorSubsystemVersion;
-            unsigned long        Win32VersionValue;
-            unsigned long        SizeOfImage;
-            unsigned long        SizeOfHeaders;
-            unsigned long        CheckSum;
-            unsigned short       Subsystem;
-            unsigned short       DllCharacteristics;
-            unsigned long        SizeOfStackReserve;
-            unsigned long        SizeOfStackCommit;
-            unsigned long        SizeOfHeapReserve;
-            unsigned long        SizeOfHeapCommit;
-            unsigned long        LoaderFlags;
-            unsigned long        NumberOfRvaAndSizes;
-            IMAGE_DATA_DIRECTORY_T DataDirectory[16];
-        };
-
-#ifdef _WIN64
-        typedef IMAGE_OPTIONAL_HEADER64_T IMAGE_OPTIONAL_HEADER_T;
-#else
-        typedef IMAGE_OPTIONAL_HEADER32_T IMAGE_OPTIONAL_HEADER_T;
-#endif
-
-        struct IMAGE_NT_HEADERS_T {
-            unsigned long     Signature;
-            IMAGE_FILE_HEADER_T FileHeader;
-            IMAGE_OPTIONAL_HEADER_T OptionalHeader;
-        };
     }
 
     /*
@@ -291,13 +163,13 @@ namespace importless_api
                 char* hBase = curr_module->DllBase;
 
 
-                win::IMAGE_DOS_HEADER_T* hImageDosHeader = (win::IMAGE_DOS_HEADER_T*)hBase;
-                win::IMAGE_NT_HEADERS_T* hImageNtHeaders = (win::IMAGE_NT_HEADERS_T*)(hBase + hImageDosHeader->e_lfanew);
+                IMAGE_DOS_HEADER* hImageDosHeader = (IMAGE_DOS_HEADER*)hBase;
+                IMAGE_NT_HEADERS* hImageNtHeaders = (IMAGE_NT_HEADERS*)(hBase + hImageDosHeader->e_lfanew);
 
                 /* If export table exists. */
                 if (hImageNtHeaders->OptionalHeader.DataDirectory[0].VirtualAddress != 0)
                 {
-                    win::IMAGE_EXPORT_DIRECTORY_T* hImageExportDirectory = (win::IMAGE_EXPORT_DIRECTORY_T*)(hBase + hImageNtHeaders->OptionalHeader.DataDirectory[0].VirtualAddress);
+                    IMAGE_EXPORT_DIRECTORY* hImageExportDirectory = (IMAGE_EXPORT_DIRECTORY*)(hBase + hImageNtHeaders->OptionalHeader.DataDirectory[0].VirtualAddress);
 
                     PDWORD pNamePointers = (PDWORD)(hBase + hImageExportDirectory->AddressOfNames);
                     PWORD pOrdinalPointers = (PWORD)(hBase + hImageExportDirectory->AddressOfNameOrdinals);
