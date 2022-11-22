@@ -47,6 +47,12 @@ SOFTWARE.
 #define DATE_AND_TIME "ImportlessApiConsistentCompilation"
 #endif
 
+
+#define TO_UNICODE_HELPER(x) L##x
+#define TO_UNICODE(x) TO_UNICODE_HELPER(x)
+#define DATE_AND_TIME_UNICODE TO_UNICODE(DATE_AND_TIME)
+
+
 #ifndef IMPORTLESSAPI_REMOVE_INLINE
 #define IMPORTLESSAPI_INLINED __forceinline
 #else
@@ -200,6 +206,136 @@ namespace importless_api
 };
 
 
+namespace importless_module 
+{
+    namespace win {
+        struct LIST_ENTRY_T {
+            LIST_ENTRY_T* Flink;
+            LIST_ENTRY_T* Blink;
+        };
+
+        struct UNICODE_STRING_T {
+            unsigned short Length;
+            unsigned short MaximumLength;
+            wchar_t* Buffer;
+        };
+
+        struct PEB_LDR_DATA_T {
+            unsigned long Length;
+            unsigned long Initialized;
+            const char* SsHandle;
+            LIST_ENTRY_T  InMemoryOrderLinks;
+        };
+
+        struct PEB_T {
+            unsigned char   Reserved1[2];
+            unsigned char   BeingDebugged;
+            unsigned char   Reserved2[1];
+            const char* Reserved3[2];
+            PEB_LDR_DATA_T* Ldr;
+        };
+
+        struct LDR_DATA_TABLE_ENTRY_T {
+            LIST_ENTRY_T InLoadOrderLinks;
+            LIST_ENTRY_T InMemoryOrderLinks;
+            LIST_ENTRY_T InInitializationOrderLinks;
+            char* DllBase;
+            const char* EntryPoint;
+            union {
+                unsigned long SizeOfImage;
+                const char* _dummy;
+            };
+            UNICODE_STRING_T FullDllName;
+            UNICODE_STRING_T BaseDllName;
+        };
+
+
+    }
+
+    /*
+        Hash string with start value.
+        Choosed the hash function based on "The Last Stage of Delerium. Win32 Assembly Components"
+    */
+    constexpr UINT32 hash_str(const wchar_t* module_name, const UINT32 value)
+    {
+
+        UINT32 hash = value;
+        for (;;)
+        {
+            char c = *module_name;
+            if (c >= 'A' && c <= 'Z')
+            {
+                c = c - 'A' + 'a';
+            }
+
+            module_name++;
+            if (!c)
+                return hash;
+
+            hash = (((hash << 5) | (hash >> 27)) + c) & 0xFFFFFFFF;
+        }
+    }
+
+    template<UINT32 hash> class importless_module
+    {
+
+    private:
+        /* Getting the PEB struct from register based on architecture. */
+        const win::PEB_T* peb() noexcept
+        {
+#if defined(_M_X64) || defined(__amd64__)
+            return reinterpret_cast<const win::PEB_T*>(__readgsqword(0x60));
+#elif defined(_M_IX86) || defined(__i386__)
+            return reinterpret_cast<const win::PEB_T*>(__readfsdword(0x30));
+#elif defined(_M_ARM) || defined(__arm__)
+            return *reinterpret_cast<const win::PEB_T**>(_MoveFromCoprocessor(15, 0, 13, 0, 2) + 0x30);
+#elif defined(_M_ARM64) || defined(__aarch64__)
+            return *reinterpret_cast<const win::PEB_T**>(__getReg(18) + 0x60);
+#elif defined(_M_IA64) || defined(__ia64__)
+            return *reinterpret_cast<const win::PEB_T**>(static_cast<char*>(_rdteb()) + 0x60);
+#else
+#error Unsupported platform. 
+#endif
+        }
+
+
+    public:
+
+        IMPORTLESSAPI_INLINED importless_module()
+        {}
+
+        IMPORTLESSAPI_INLINED UINT32 get_hash()
+        {
+            return hash;
+        }
+
+        /* Iterates over the PEB and all exported functions to find function by hash. */
+        IMPORTLESSAPI_INLINED LPVOID get_base()
+        {
+            win::LDR_DATA_TABLE_ENTRY_T* curr_module = (win::LDR_DATA_TABLE_ENTRY_T*)peb()->Ldr->InMemoryOrderLinks.Flink;
+
+            /* Iterate over loaded modules. */
+            while (curr_module->BaseDllName.Buffer != NULL) {
+                char* hBase = curr_module->DllBase;
+
+                UINT32 module_hash = hash_str(curr_module->BaseDllName.Buffer, importless_module<hash_str(DATE_AND_TIME_UNICODE, IMPORTLESS_API_START_NUMBER)>().get_hash());
+                if (module_hash == hash)
+                {
+                    /* Return module base. */
+                    return hBase;
+                }
+
+
+                curr_module = (win::LDR_DATA_TABLE_ENTRY_T*)curr_module->InLoadOrderLinks.Flink;
+            }
+
+            return NULL;
+        }
+
+
+    };
+
+};
 
 /*
     Example usage:
@@ -209,4 +345,6 @@ namespace importless_api
 
 #define IMPORTLESS_API_STR(func_name, t) static_cast<t>(importless_api::importless_api<importless_api::hash_str(func_name, importless_api::hash_str(DATE_AND_TIME, IMPORTLESS_API_START_NUMBER))>().get_function())
 
+
+#define IMPORTLESS_MODULE(module_name) importless_module::importless_module<importless_module::hash_str(module_name, importless_module::hash_str(DATE_AND_TIME_UNICODE, IMPORTLESS_API_START_NUMBER))>().get_base()
 

@@ -18,13 +18,17 @@ int main()
 
 	//IMPORTLESS_API(CloseHandle)(hFile);
 
-	IMPORTLESS_API(LoadLibraryA)("user32.dll");
+	printf("%x\n", IMPORTLESS_API(LoadLibraryA)("kernel32.dll"));
+
+	printf("%x\n", IMPORTLESS_MODULE(L"kernel32.dll"));
 
 	// For NTDLL.dll exports
-	IMPORTLESS_API_STR("MessageBoxA", decltype(&MessageBoxA))(0, "YS", "YS", 0);
+	//IMPORTLESS_API_STR("MessageBoxA", decltype(&MessageBoxA))(0, "YS", "YS", 0);
 
-	IMPORTLESS_API(MessageBoxA)(0, "YS", "YS", 0);
+	//IMPORTLESS_API(MessageBoxA)(0, "YS", "YS", 0);
 
+
+	
 
 	return 0;
 }
