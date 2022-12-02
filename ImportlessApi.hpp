@@ -262,10 +262,10 @@ namespace importless_module
         UINT32 hash = value;
         for (;;)
         {
-            char c = *module_name;
-            if (c >= 'A' && c <= 'Z')
+            wchar_t c = *module_name;
+            if (c >= L'A' && c <= L'Z')
             {
-                c = c - 'A' + 'a';
+                c = c - L'A' + L'a';
             }
 
             module_name++;
