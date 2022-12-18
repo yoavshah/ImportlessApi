@@ -201,6 +201,38 @@ namespace importless_api
             return NULL;
         }
 
+        /* Iterates over the PEB and all exported functions to find function by hash. */
+        IMPORTLESSAPI_INLINED LPVOID get_function(void* pBase)
+        {
+
+            char* hBase = pBase;
+
+
+            IMAGE_DOS_HEADER* hImageDosHeader = (IMAGE_DOS_HEADER*)hBase;
+            IMAGE_NT_HEADERS* hImageNtHeaders = (IMAGE_NT_HEADERS*)(hBase + hImageDosHeader->e_lfanew);
+
+            /* If export table exists. */
+            if (hImageNtHeaders->OptionalHeader.DataDirectory[0].VirtualAddress != 0)
+            {
+                IMAGE_EXPORT_DIRECTORY* hImageExportDirectory = (IMAGE_EXPORT_DIRECTORY*)(hBase + hImageNtHeaders->OptionalHeader.DataDirectory[0].VirtualAddress);
+
+                PDWORD pNamePointers = (PDWORD)(hBase + hImageExportDirectory->AddressOfNames);
+                PWORD pOrdinalPointers = (PWORD)(hBase + hImageExportDirectory->AddressOfNameOrdinals);
+                PDWORD pAddressesPointers = (PDWORD)(hBase + hImageExportDirectory->AddressOfFunctions);
+
+                /* Iterate over functions and check their hash. */
+                for (size_t i = 0; i < hImageExportDirectory->NumberOfNames; ++i, ++pNamePointers, ++pOrdinalPointers)
+                {
+                    UINT32 func_hash = hash_str(hBase + *pNamePointers, importless_api<hash_str(DATE_AND_TIME, IMPORTLESS_API_START_NUMBER)>().get_hash());
+                    if (func_hash == hash)
+                    {
+                        DWORD dwFuncRVA = pAddressesPointers[*pOrdinalPointers];
+
+                        /* Return function address. */
+                        return hBase + dwFuncRVA;
+                    }
+                }
+            }
 
     };
 };
@@ -345,6 +377,9 @@ namespace importless_module
 
 #define IMPORTLESS_API_STR(func_name, t) static_cast<t>(importless_api::importless_api<importless_api::hash_str(func_name, importless_api::hash_str(DATE_AND_TIME, IMPORTLESS_API_START_NUMBER))>().get_function())
 
+#define IMPORTLESS_API_WITH_MODULE(func_name, base) static_cast<decltype(&func_name)>(importless_api::importless_api<importless_api::hash_str(REAL_DEFINITION(func_name), importless_api::hash_str(DATE_AND_TIME, IMPORTLESS_API_START_NUMBER))>().get_function(base))
+
+#define IMPORTLESS_API_STR_WITH_BASE(func_name, base, t) static_cast<t>(importless_api::importless_api<importless_api::hash_str(func_name, importless_api::hash_str(DATE_AND_TIME, IMPORTLESS_API_START_NUMBER))>().get_function(base))
 
 #define IMPORTLESS_MODULE(module_name) importless_module::importless_module<importless_module::hash_str(module_name, importless_module::hash_str(DATE_AND_TIME_UNICODE, IMPORTLESS_API_START_NUMBER))>().get_base()
 
