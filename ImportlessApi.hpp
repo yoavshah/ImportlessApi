@@ -205,7 +205,7 @@ namespace importless_api
         IMPORTLESSAPI_INLINED LPVOID get_function(void* pBase)
         {
 
-            char* hBase = pBase;
+            char* hBase = reinterpret_cast<char*>(pBase);
 
 
             IMAGE_DOS_HEADER* hImageDosHeader = (IMAGE_DOS_HEADER*)hBase;
@@ -233,7 +233,7 @@ namespace importless_api
                     }
                 }
             }
-
+        }
     };
 };
 
@@ -380,6 +380,8 @@ namespace importless_module
 #define IMPORTLESS_API_WITH_MODULE(func_name, base) static_cast<decltype(&func_name)>(importless_api::importless_api<importless_api::hash_str(REAL_DEFINITION(func_name), importless_api::hash_str(DATE_AND_TIME, IMPORTLESS_API_START_NUMBER))>().get_function(base))
 
 #define IMPORTLESS_API_STR_WITH_BASE(func_name, base, t) static_cast<t>(importless_api::importless_api<importless_api::hash_str(func_name, importless_api::hash_str(DATE_AND_TIME, IMPORTLESS_API_START_NUMBER))>().get_function(base))
+
+
 
 #define IMPORTLESS_MODULE(module_name) importless_module::importless_module<importless_module::hash_str(module_name, importless_module::hash_str(DATE_AND_TIME_UNICODE, IMPORTLESS_API_START_NUMBER))>().get_base()
 
