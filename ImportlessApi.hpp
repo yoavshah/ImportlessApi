@@ -129,7 +129,7 @@ namespace importless_api
 
     private:
         /* Getting the PEB struct from register based on architecture. */
-        const win::PEB_T* peb() noexcept
+        const win::PEB_T* peb()
         {
 #if defined(_M_X64) || defined(__amd64__)
             return reinterpret_cast<const win::PEB_T*>(__readgsqword(0x60));
@@ -313,7 +313,7 @@ namespace importless_module
 
     private:
         /* Getting the PEB struct from register based on architecture. */
-        const win::PEB_T* peb() noexcept
+        const win::PEB_T* peb()
         {
 #if defined(_M_X64) || defined(__amd64__)
             return reinterpret_cast<const win::PEB_T*>(__readgsqword(0x60));
